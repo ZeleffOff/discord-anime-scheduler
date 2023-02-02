@@ -1,0 +1,24 @@
+{
+  "name": "discord-anime-scheduler",
+  "version": "1.0.8",
+  "description": "Anime scheduler for discord bots or other.. Anime notification pour bots discord ou autres..",
+  "main": "./src/scheduler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "discord",
+    "anime",
+    "scheduler"
+  ],
+  "author": "Zeleff_#1615",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "homepage": "https://github.com/ZeleffOff/discord-anime-scheduler",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZeleffOff/discord-anime-scheduler.git"
+  }
+}
