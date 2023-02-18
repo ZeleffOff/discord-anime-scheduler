@@ -3,7 +3,7 @@ const { readFileSync } = require('fs');
 const query = readFileSync(require.resolve('../src/Graphql/Query.graphql')).toString();
 const EventEmitter = require('events');
 
-_checkUpdate();
+_checkUpdate()
 
 class Scheduler extends EventEmitter {
     constructor(client, options = { log: true }) {
