@@ -14,15 +14,6 @@ const AnimeQueryIds = readFileSync(require.resolve('../src/Graphql/AnimeQueryIds
 const AnimesQuery = readFileSync(require.resolve('../src/Graphql/AnimesQuery.graphql')).toString();
 const errorCode = {
     INVALID_GUILD: 'INVALID_GUILD',
-    INVALID_ANIME: 'INVALID_ANIME',
-    INVALID_ROLE: 'INVALID_ROLE',
-    INVALID_MODE: 'INVALID_MODE',
-    INVALID_CHANNEL: 'INVALID_CHANNEL',
-    ALREADY_IN_DB: 'ALREADY_IN_DB',
-    EMPTY_LIST: 'EMPTY_LIST',
-    NOT_IN_DB: 'NOT_IN_DB',
-    ANIME_NOT_FOUND: 'ANIME_NOT_FOUND',
-    DB_ERROR: 'DB_ERROR',
     ERROR: 'ERROR'
 };
 const successCode = {
@@ -35,7 +26,7 @@ const ANILIST_REGEX = /(?<=anilist\.co\/anime\/)\d{1,}/gi;
 _checkUpdate();
 
 class Scheduler extends EventEmitter {
-    constructor(client, options = { log: true, mongoUri: 'a', autoPost: false }) {
+    constructor(client, options = { log: false, mongoUri: null, autoPost: true }) {
         super();
 
         /**
@@ -329,7 +320,7 @@ class Scheduler extends EventEmitter {
         try {
             await require('../src/Models/Guild').findOneAndDelete({ _id: guild.id });
             return successCode.UPDATED;
-        } catch (err) {
+        } catch (error) {
             return error;
         }
     }
@@ -349,7 +340,7 @@ class Scheduler extends EventEmitter {
      */
     async setMode(guild, mode) {
         if (!guild || !(guild instanceof Guild)) _error('Serveur invalide.', errorCode.INVALID_GUILD);
-        
+
         const modes = ['all', 'list'];
         if (!modes.includes(mode)) _error('Mode de notification non supporté.', 'INVALID_MODE');
 
