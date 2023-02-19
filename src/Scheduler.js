@@ -101,10 +101,10 @@ class Scheduler extends EventEmitter {
 
                 if (animeSameData.length) {
                     if (this.autoPost) {
-                        await sendNotification(animeSameData, this.notifications[1], this.client, this.log);
+                        await sendNotification(animeSameData, this.client, this.log);
                         this.notifications = this.notifications.filter(a => a.timeUntilAiring !== this.notifications[0].timeUntilAiring);
                     } else {
-                        this.emit('airing', animeSameData, this.notifications[1]);
+                        this.emit('airing', animeSameData);
                         this.notifications = this.notifications.filter(a => a.timeUntilAiring !== this.notifications[0].timeUntilAiring);
                     }
 
@@ -226,7 +226,7 @@ class Scheduler extends EventEmitter {
             anime = await fetchAnime(AnimeQuery, {
                 search: anime,
                 type: 'ANIME'
-            }).then(e => { return Number(e.data.Media?.id) }).catch();
+            }).then(e => { return Number(e.data.Media?.id) }).catch(e => null);
             if (!anime) return {
                 error: true,
                 message: 'Anime introuvable.',
@@ -239,7 +239,7 @@ class Scheduler extends EventEmitter {
         if (guildDb.data.includes(anime)) return { error: true, message: 'Cet anime fait déjà partie de la database.', code: errorCode.ALREADY_IN_DB }
 
         let query = await fetchAnime(AnimeQueryIds, { ids: anime });
-        if (query.errors || !query.data.Page.media.length) return console.log(query.errors)
+        if (query.errors || !query.data.Page.media.length) return { error: true, message: 'Anime introuvable.', code: errorCode.ANIME_NOT_FOUND };
 
         query = query.data.Page.media[0];
 
@@ -247,17 +247,23 @@ class Scheduler extends EventEmitter {
         if (query.status === 'CANCELLED') return { error: true, message: 'Cet anime a annuler sa diffusion.', code: 'CANCELLED', anime: query };
 
         guildDb.data.push(anime);
-        guildDb.save()
-            .catch((err) => {
-                return console.log('Une erreur est survenue lors de l\'ajout d\'un anime à la database : ', err)
-            });
 
-        return {
-            error: false,
-            database: guildDb,
-            anime_added: anime,
-            code: successCode.UPDATED
-        };
+        try {
+            guildDb.save();
+            return {
+                error: false,
+                database: guildDb,
+                anime_added: anime,
+                code: successCode.UPDATED
+            };
+        } catch (error) {
+            console.log('Une erreur est survenue lors de l\'ajout d\'un anime à la database : ', err);
+            return {
+                error: true,
+                message: error,
+                code: errorCode.DB_ERROR
+            }
+        }
     }
 
     /**

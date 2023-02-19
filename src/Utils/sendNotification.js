@@ -1,33 +1,38 @@
-async function sendNotification(animes, nextAnime, client, logStatus) {
+async function sendNotification(animes, client, logStatus) {
     const guilds = await getGuilds();
-    const channels = guilds.filter(guild => guild.channel).map(guild => client.channels.cache.get(guild.channel)).filter(Boolean);
 
-    const notifications = animes.map(anime => {
-        const description = `L'épisode \`${anime.episode}\` de l'anime **${anime.media.title.romaji || anime.media.title.english || anime.media.title.native}** est désormais disponible sur les sites ci-dessous :\n\n${anime.media.externalLinks.map(site => `[${site.site}](${site.url})`).join(" - ")}`;
+    const notifications = animes.flatMap(anime => {
+        const { media, episode } = anime;
 
-        return {
-            author: { name: anime.media.title.romaji || anime.media.title.english || anime.media.title.native, icon_url: anime.media.coverImage.large, url: anime.media.siteUrl },
-            description,
-            color: Number('0x' + anime.media.coverImage.color.replace('#', '')) ?? 0xF3df94,
-            thumbnail: { url: anime.media.coverImage.large },
-            timestamp: new Date().toISOString()
-        };
-    });
-
-    const promises = [];
-
-    for (const channel of channels) {
-        const promise = channel.send({ embeds: notifications }).then(() => {
-            if (logStatus) {
-                console.log(`Notification envoyée sur le serveur ${channel.guild.id} pour l'épisode ${animes[0].episode} de l'anime ${animes[0].media.title.romaji || animes[0].media.title.english || animes[0].media.title.native}`);
+        return guilds.filter(guild => {
+            if (guild.channel && guild.mode === 'list') {
+                return guild.data.includes(media.id);
             }
-        }).catch(e => console.log(e));
 
-        promises.push(promise);
-    }
+            return true;
+        }).map(guild => {
+            const channel = client.channels.cache.get(guild.channel);
+            if (!channel) return;
 
-    await Promise.all(promises);
+            const title = media.title.romaji || media.title.english || media.title.native;
+            const embed = {
+                author: { name: title, icon_url: media.coverImage.large, url: media.siteUrl },
+                description: `L'épisode \`${episode}\` de l'anime **${media.title.romaji || media.title.english || media.title.native}** est désormais disponible sur les sites ci-dessous :\n\n${media.externalLinks.map(site => `[${site.site}](${site.url})`).join(" - ")}`,
+                color: Number('0x' + media.coverImage.color.replace('#', '')) ?? 0xF3df94,
+                thumbnail: { url: media.coverImage.large },
+                timestamp: new Date().toISOString()
+            };
+
+            return channel.send({ embeds: [embed] }).then(() => {
+                if (logStatus) {
+                    console.log(`Notification envoyée au serveur ${channel.guild.id}. Anime : ${media.title.romaji} - Episode : ${episode}`);
+                }
+            }).catch(e => console.log(e));
+        });
+    });
+    return Promise.all(notifications);
 }
+
 
 async function getGuilds() {
     const guilds = await require('../Models/Guild').find({});
