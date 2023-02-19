@@ -109,7 +109,7 @@ class Scheduler extends EventEmitter {
             };
 
             const emitNotification = () => {
-                notification = setTimeout(loopAiring, 5000);
+                notification = setTimeout(loopAiring, this.notifications[0].timeUntilAiring * 1000);
             };
 
             emitNotification();
