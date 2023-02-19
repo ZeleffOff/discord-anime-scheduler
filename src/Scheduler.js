@@ -41,6 +41,7 @@ class Scheduler extends EventEmitter {
         this.autoPost = options.autoPost;
         this.database = null;
 
+        if (!this.mongoUri) _error("Uri MongoDB manquant.", 'INVALID_MONGO');
         if (!(this.client instanceof Client)) _error("L'argument #client fourni n'est pas une instance Discord#Client.", 'INVALID_CLIENT');
     }
 
@@ -382,5 +383,5 @@ module.exports = Scheduler;
 /**
  * @author Zeleff_#1615
  * @description Notifie un serveur lors d'un nouvel épisode d'anime !
- * @version 2.0
+ * @version 2.0.0
  */
