@@ -1,0 +1,39 @@
+query ($search: String, $type: MediaType) { Media(search: $search, type: $type, isAdult:false) {
+      id
+      siteUrl
+      episodes
+      format
+      chapters
+      volumes
+      rankings {
+          rank  
+      }
+      studios(isMain: true) {
+          edges{
+              node{
+                  name
+              }
+          }
+      }
+      trailer {
+          site
+      }
+      nextAiringEpisode {
+          episode
+          timeUntilAiring
+        }
+      genres
+      popularity
+      meanScore
+      title {
+          romaji english native userPreferred
+      }
+      coverImage {
+          large color
+      }
+      siteUrl nextAiringEpisode { episode timeUntilAiring }
+      status(version:2)
+      description(asHtml: false)
+      averageScore
+  }
+  }

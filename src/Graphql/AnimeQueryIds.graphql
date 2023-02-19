@@ -1,0 +1,22 @@
+query($ids: [Int]) { 
+    Page(perPage: 25) { 
+        media(id_in: $ids type: ANIME) { 
+            id 
+            title { 
+                romaji 
+                english 
+                native 
+                userPreferred 
+            } 
+            status 
+            coverImage{ 
+                large
+                color 
+            } 
+            siteUrl 
+            nextAiringEpisode { 
+                episode timeUntilAiring 
+            } 
+        }
+    } 
+}
