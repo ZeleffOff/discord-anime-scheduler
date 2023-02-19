@@ -4,6 +4,7 @@ Notifie un serveur lorsqu'un anime est diffusé depuis [Anilist.co](https://anil
 
 - Utilise la base de données MongoDB.
 - Utilise la version v14 de Discord.js.
+- Npm : https://www.npmjs.com/package/discord-anime-scheduler
  
 ❗ Je ne suis pas developer pro, si vous avez des suggestions d'améliorations à apporter au projet n'hésitez pas à me contacter ou faites une pull request.
 
