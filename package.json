@@ -1,10 +1,10 @@
 {
   "name": "discord-anime-scheduler",
   "version": "1.0.8",
-  "description": "Anime scheduler for discord bots or other.. Anime notification pour bots discord ou autres..",
+  "description": "Notifie un serveur lorsqu'un anime est diffusé !",
   "main": "./src/scheduler.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node ."
   },
   "keywords": [
     "discord",
@@ -18,9 +18,5 @@
     "mongoose": "^6.9.2",
     "node-fetch": "^2.6.7"
   },
-  "homepage": "https://github.com/ZeleffOff/discord-anime-scheduler",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ZeleffOff/discord-anime-scheduler.git"
-  }
+  "homepage": "https://github.com/ZeleffOff/discord-anime-scheduler"
 }
