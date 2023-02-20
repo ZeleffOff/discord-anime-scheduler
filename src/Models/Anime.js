@@ -8,4 +8,4 @@ const Guild = new Schema({
     channel: { type: String }
 });
 
-module.exports = model('Guild_Anime_Schedule', Guild);
+module.exports = model('Scheduler', Guild);

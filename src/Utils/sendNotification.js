@@ -35,7 +35,7 @@ async function sendNotification(animes, client, logStatus) {
 
 
 async function getGuilds() {
-    const guilds = await require('../Models/Guild').find({});
+    const guilds = await require('../Models/Anime').find({});
     return guilds;
 }
 

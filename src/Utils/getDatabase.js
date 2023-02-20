@@ -1,4 +1,4 @@
-const Guild = require('../Models/Guild');
+const Guild = require('../Models/Anime');
 
 async function getDatabase(guildID, autoCreate) {
     let database = await Guild.findOne({ _id: guildID });

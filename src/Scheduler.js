@@ -12,13 +12,7 @@ const query = readFileSync(require.resolve('../src/Graphql/SchedulerQuery.graphq
 const AnimeQuery = readFileSync(require.resolve('../src/Graphql/AnimeQuery.graphql')).toString();
 const AnimeQueryIds = readFileSync(require.resolve('../src/Graphql/AnimeQueryIds.graphql')).toString();
 const AnimesQuery = readFileSync(require.resolve('../src/Graphql/AnimesQuery.graphql')).toString();
-const errorCode = {
-    INVALID_GUILD: 'INVALID_GUILD',
-    ERROR: 'ERROR'
-};
-const successCode = {
-    UPDATED: 'UPDATED'
-}
+const AnimeModel = require('./Models/Anime');
 
 const MAL_REGEX = /(?<=myanimelist\.net\/anime\/)\d{1,}/gi;
 const ANILIST_REGEX = /(?<=anilist\.co\/anime\/)\d{1,}/gi;
@@ -127,18 +121,14 @@ class Scheduler extends EventEmitter {
      * @returns {Promise<{ error: boolean, message: string, code: number }>} - Une promesse qui retourne un objet contenant des informations sur la réussite ou l'échec de l'opération.
     */
     async setChannel(guild, channel) {
-        if (!guild || !(guild instanceof Guild)) _error('Serveur invalide.', errorCode.INVALID_GUILD);
+        if (!guild || !(guild instanceof Guild)) _error('Guild not provided or not instance of Discord#Guild.', errorCode.INVALID_GUILD);
         if (!channel || !(channel instanceof TextChannel) && !(channel instanceof NewsChannel)) _error('Channel invalide.', 'INVALID_CHANNEL');
 
         const guildDb = await getDatabase(guild.id, true);
         guildDb.channel = channel.id;
 
-        try {
-            await guildDb.save();
-            return successCode.UPDATED;
-        } catch (error) {
-            return error;
-        }
+        await guildDb.save().catch(e => console.log('Scheduler#setChannel Error : ', e));
+        return guildDb;
     }
 
     /**
@@ -152,18 +142,14 @@ class Scheduler extends EventEmitter {
      * @throws {TypeError} Si `guild` n'est pas une instance de `Discord#Guild` ou si `role` n'est pas une instance de `Discord#Role`.
     */
     async setRole(guild, role) {
-        if (!guild || !(guild instanceof Guild)) _error('Serveur invalide.', errorCode.INVALID_GUILD)
+        if (!guild || !(guild instanceof Guild)) _error('Guild not provided or not instance of Discord#Guild.', errorCode.INVALID_GUILD)
         if (!role || !(role instanceof Role)) _error('Rôle invalide.', 'INVALID_ROLE');
 
         const guildDb = await getDatabase(guild.id, true);
         guildDb.role = role.id;
 
-        try {
-            await guildDb.save();
-            return successCode.UPDATED;
-        } catch (error) {
-            return error;
-        }
+        await guildDb.save().catch(e => console.log('Scheduler#setRole error : ', e));
+        return guildDb;
     }
 
     /**
@@ -181,7 +167,7 @@ class Scheduler extends EventEmitter {
      *      - anime_added {number} - Informations sur l'anime ajouté, si l'opération a réussi.
      */
     async addAnime(guild, anime) {
-        if (!guild || !(guild instanceof Guild)) _error('Serveur invalide.', errorCode.INVALID_GUILD);
+        if (!guild || !(guild instanceof Guild)) _error('Guild not provided or not instance of Discord#Guild.', errorCode.INVALID_GUILD);
         if (!anime) _error('Anime à ajouter non fourni.', 'ANIME_NOT_FOUND');
 
         let guildDb = await getDatabase(guild.id, true);
@@ -215,12 +201,8 @@ class Scheduler extends EventEmitter {
 
         guildDb.data.push(anime);
 
-        try {
-            guildDb.save();
-            return successCode.UPDATED;
-        } catch (error) {
-            return error;
-        }
+        await guildDb.save().catch(e => console.log('Scheduler#addAnime Error : ', e));
+        return guildDb;
     }
 
     /**
@@ -232,11 +214,11 @@ class Scheduler extends EventEmitter {
      * @returns {Promise<{error: boolean, message: string, code: number}>}
      */
     async removeAnime(guild, animeId) {
-        if (!guild || !(guild instanceof Guild)) _error('Serveur invalide.', errorCode.INVALID_GUILD);
+        if (!guild || !(guild instanceof Guild)) _error('Guild not provided or not instance of Discord#Guild.', errorCode.INVALID_GUILD);
         if (!animeId) _error('Anime introuvable.', 'ANIME_NOT_FOUND');
 
         let guildDb = await getDatabase(guild.id);
-        if (!guildDb) _error('Liste d\'anime du serveur vide.', 'EMPTY_LIST');
+        if (!guildDb) _error('Anime server list is empty.', 'EMPTY_LIST');
 
         // Récupère l'identifiant de l'anime à partir de son nom ou de son URL
         let anime = Number(animeId);
@@ -258,18 +240,12 @@ class Scheduler extends EventEmitter {
             }
         }
 
-        if (!guildDb.data.includes(anime)) {
-            return { error: true, message: 'Cet anime ne fait pas partie de la liste des animes du serveur.', code: errorCode.NOT_IN_DB };
-        }
+        if (!guildDb.data.includes(anime)) throw new Error('Anime is not in anime list.');
 
         guildDb.data.splice(guildDb.data.findIndex(a => a === anime), 1);
 
-        try {
-            guildDb.save();
-            return successCode.UPDATED;
-        } catch (error) {
-            return error;
-        }
+        await guildDb.save().catch(e => console.log('Scheduler#removeAnime Error : ', e));
+        return guildDb;
     }
 
     /**
@@ -279,10 +255,10 @@ class Scheduler extends EventEmitter {
      * @returns {Promise<Array>} La liste d'anime regardés par le serveur.
     */
     async list(guild) {
-        if (!guild || !(guild instanceof Guild)) _error('Serveur invalide.', errorCode.INVALID_GUILD);
+        if (!guild || !(guild instanceof Guild)) throw new TypeError('Guild not provided or not instance of Discord#Guild.');
 
         let guildDb = await getDatabase(guild.id);
-        if (!guildDb || !guildDb.data.length) _error('Liste d\'anime du serveur vide.', 'EMPTY_LIST');
+        if (!guildDb || !guildDb.data.length) throw new Error('Anime server list is empty.');
 
         const entries = [],
             watched = guildDb.data;
@@ -294,7 +270,7 @@ class Scheduler extends EventEmitter {
             const animes = await fetchAnime(AnimesQuery, { watched, page });
 
             if (animes.errors) return { error: true, errors: animes.errors };
-            else if (!entries.length && !animes.data.Page.media.length) _error('Liste d\'anime du serveur vide.', 'EMPTY_LIST');
+            else if (!entries.length && !animes.data.Page.media.length) throw new Error('No anime found in this anime list.');
             else {
                 page = animes.data.Page.pageInfo.currentPage + 1,
                     hasNextPage = animes.data.Page.hasNextPage;
@@ -313,17 +289,13 @@ class Scheduler extends EventEmitter {
      * @returns {Object} - Informations conçernant le résultat de la fonction.
     */
     async delete(guild) {
-        if (!guild || !(guild instanceof Guild)) _error('Serveur invalide.', errorCode.INVALID_GUILD);
+        if (!guild || !(guild instanceof Guild)) throw new TypeError('Guild not provided or not instance of Discord#Guild.');
 
         const guildDb = await getDatabase(guild.id);
-        if (!guildDb || !guildDb.data.length) _error('Serveur introuvable.', errorCode.INVALID_GUILD);
+        if (!guildDb || !guildDb.data.length) throw new TypeError('Guild not found.');
 
-        try {
-            await require('../src/Models/Guild').findOneAndDelete({ _id: guild.id });
-            return successCode.UPDATED;
-        } catch (error) {
-            return error;
-        }
+        await AnimeModel.findOneAndDelete({ _id: guild.id }).catch(e => console.log('Scheduler#delete Error : ', e));
+        return guildDb;
     }
 
     /**
@@ -340,7 +312,7 @@ class Scheduler extends EventEmitter {
      * Si une erreur est survenue, le code de retour est : `INVALID_MODE` si le mode est invalide ou `DB_ERROR` si une erreur est survenue lors de la modification de la base de données.
      */
     async setMode(guild, mode) {
-        if (!guild || !(guild instanceof Guild)) _error('Serveur invalide.', errorCode.INVALID_GUILD);
+        if (!guild || !(guild instanceof Guild)) _error('Guild not provided or not instance of Discord#Guild.', errorCode.INVALID_GUILD);
 
         const modes = ['all', 'list'];
         if (!modes.includes(mode)) _error('Mode de notification non supporté.', 'INVALID_MODE');
@@ -348,17 +320,8 @@ class Scheduler extends EventEmitter {
         const guildDb = await getDatabase(guild.id, true);
         guildDb.mode = mode;
 
-        try {
-            guildDb.save()
-
-            return {
-                error: false,
-                message: 'Mode défini sur ' + mode,
-                code: successCode.UPDATED
-            }
-        } catch (error) {
-            return { error: true, message: err, code: errorCode.DB_ERROR };
-        }
+        await guildDb.save().catch(e => console.log('Scheduler#setMode Error : ', e));
+        return guildDb;
     }
 
     /**
