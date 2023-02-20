@@ -282,7 +282,7 @@ class Scheduler extends EventEmitter {
         if (!guild || !(guild instanceof Guild)) throw new TypeError('Guild not provided or not instance of Discord#Guild.');
 
         const guildDb = await getDatabase(guild.id);
-        if (!guildDb || !guildDb.data.length) throw new TypeError('Guild not found.');
+        if (!guildDb || !guildDb.data.length) throw new Error('Guild not found.');
 
         await AnimeModel.findOneAndDelete({ _id: guild.id }).catch(e => console.log('Scheduler#delete Error : ', e));
         return guildDb;
