@@ -1,6 +1,6 @@
 {
   "name": "discord-anime-scheduler",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Notifie un serveur lorsqu'un anime est diffusé !",
   "main": "./src/scheduler.js",
   "scripts": {
