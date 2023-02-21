@@ -256,7 +256,7 @@ class Scheduler extends EventEmitter {
                 }
             };
             
-            anime = Number(anime);
+            anime = Number(anime); 
 
             if (!guildDb.data.includes(anime)) reject({ message: 'This anime is not part of the server list.', code: 'NOT_IN_DATABASE' });
 
