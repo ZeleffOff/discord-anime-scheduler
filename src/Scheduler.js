@@ -128,8 +128,12 @@ class Scheduler extends EventEmitter {
         const guildDb = await getDatabase(guild.id, true);
         guildDb.channel = channel.id;
 
-        await guildDb.save().catch(e => console.log('Scheduler#setChannel Error : ', e));
-        return guildDb;
+        try {
+            await guildDb.save()
+            return resolve(guildDb);
+        } catch (error) {
+            return reject('Cannot save data in database :\n', error);
+        }
     }
 
     /**
@@ -142,14 +146,20 @@ class Scheduler extends EventEmitter {
       * @returns {Promise<{ error: boolean, message: string, code: number }>} An object containing an error boolean, message, and status code.
     */
     async setRole(guild, role) {
-        if (!guild || !(guild instanceof Guild)) throw new TypeError('Guild not provided or not instance of Discord#Guild.')
-        if (!role || !(role instanceof Role)) throw new TypeError('Role not provided or not instanceof Discord#Role.');
+        return new Promise(async (resolve, reject) => {
+            if (!guild || !(guild instanceof Guild)) return reject({ message: 'Guild not provided or not instance of Discord#Guild.', code: 'INVALID_GUILD' });
+            if (!role || !(role instanceof Role)) return reject({ message: 'Role not provided or not instanceof Discord#Role.', code: 'IVNALID_ROLE' });
 
-        const guildDb = await getDatabase(guild.id, true);
-        guildDb.role = role.id;
+            const guildDb = await getDatabase(guild.id, true);
+            guildDb.role = role.id;
 
-        await guildDb.save().catch(e => console.log('Scheduler#setRole error : ', e));
-        return guildDb;
+            try {
+                await guildDb.save()
+                return resolve(guildDb);
+            } catch (error) {
+                return reject('Cannot save data in database :\n', error);
+            }
+        })
     }
 
     /**
@@ -161,38 +171,53 @@ class Scheduler extends EventEmitter {
      * @param {string|number} anime - The name or ID of the anime we want to add from https://anilist.co
     */
     async addAnime(guild, anime) {
-        if (!guild || !(guild instanceof Guild)) _error('Guild not provided or not instance of Discord#Guild.');
-        if (!anime) throw new TypeError('Anime not provided.');
+        return new Promise(async (resolve, reject) => {
+            if (!guild || !(guild instanceof Guild)) return reject({ message: 'Guild not provided or not instance of Discord#Guild.', code: 'INVALID_GUILD' });
+            if (!anime) return reject({ message: 'Anime not provided.', code: 'ANIME_NOT_FOUND' });
 
-        let guildDb = await getDatabase(guild.id, true);
+            let guildDb = await getDatabase(guild.id, true);
 
-        if (Number(anime)) anime = Number(anime);
-        else if (anime.match(ANILIST_REGEX)) anime = anime.match(ANILIST_REGEX)[0];
-        else if (anime.match(MAL_REGEX)) anime = anime.match(MAL_REGEX)[0];
-        else {
-            anime = await fetchAnime(AnimeQuery, {
-                search: anime,
-                type: 'ANIME'
-            }).then(e => { return Number(e.data.Media?.id) }).catch(e => null);
-            if (!anime) throw new Error('Anime not found.');
-        };
+            if (isNaN(anime)) {
+                if (anime.match(ANILIST_REGEX)) {
+                    anime = anime.match(ANILIST_REGEX)[0];
+                } else if (anime.match(MAL_REGEX)) {
+                    anime = anime.match(MAL_REGEX)[0];
+                } else {
+                    anime = await fetchAnime(AnimeQuery, {
+                        search: anime,
+                        type: 'ANIME'
+                    });
+                    if (anime.errors) {
+                        if (anime.errors.find(err => err.message === 'Not Found.')) return reject({ message: 'Anime not found. Check the spelling of the anime or go to https://anilist.co to visit the animes available.', code: 'ANIME_NOT_FOUND' });
+                        return reject(anime.errors);
+                    }
+                }
+            };
 
-        anime = Number(anime);
+            anime = Number(anime);
 
-        if (guildDb.data.includes(anime)) throw new Error('Anime is already in list.');
+            if (guildDb.data.includes(anime)) return reject({ message: 'Anime already present in server anime list.', code: 'ANIME_IN_LIST' });
 
-        let query = await fetchAnime(AnimeQueryIds, { ids: anime });
-        if (query.errors || !query.data.Page.media.length) throw new Error('Anime not found.');
+            let query = await fetchAnime(AnimeQueryIds, { ids: anime });
+            if (query.errors) {
+                if (query.errors.find(err => err.message === 'Not Found.')) return reject({ message: 'Anime not found. Check the spelling of the anime or go to https://anilist.co to visit the animes available.', code: 'ANIME_NOT_FOUND' });
+                return reject(query.errors);
+            }
 
-        query = query.data.Page.media[0];
+            query = query.data.Page.media[0];
 
-        if (query.status === 'FINISHED') return { message: 'The airing of this anime has been finished.', code: 'FINISHED', anime: query };
-        if (query.status === 'CANCELLED') return { message: 'The airing of this anime has been canceled.', code: 'ANIME_CANCELLED', anime: query };
+            if (query.status === 'FINISHED') return reject({ message: 'The airing of this anime has been finished.', code: 'FINISHED', anime: query });
+            if (query.status === 'CANCELLED') return reject({ message: 'The airing of this anime has been canceled.', code: 'CANCELLED', anime: query });
 
-        guildDb.data.push(anime);
+            guildDb.data.push(anime);
 
-        await guildDb.save().catch(e => console.log('Scheduler#addAnime Error : ', e));
-        return { data: guildDb, anime: query };
+            try {
+                await guildDb.save();
+                return resolve({ data: guildDb, anime: query });
+            } catch (error) {
+                return reject('Cannot save data in database :\n', error);
+            }
+        })
     }
 
     /**
@@ -204,34 +229,42 @@ class Scheduler extends EventEmitter {
      * @param {string} animeId - The ID or name of the anime to remove.
      * @returns {Object} - The updated anime list for the guild.
     */
-    async removeAnime(guild, animeId) {
-        if (!guild || !(guild instanceof Guild)) throw new TypeError('Guild not provided or not instance of Discord#Guild.', errorCode.INVALID_GUILD);
-        if (!animeId) throw new TypeError('Anime not found.');
+    async removeAnime(guild, anime) {
+        return new Promise(async (resolve, reject) => {
+            if (!guild || !(guild instanceof Guild)) reject({ message: 'Guild not provided or not instance of Discord#Guild.', code: 'INVALID_GUILD' });
+            if (!anime) return reject({ message: 'Anime not provided. Check the spelling of the anime or go to https://anilist.co to visit the animes available.', code: 'ANIME_NOT_FOUND' });
 
-        let guildDb = await getDatabase(guild.id);
-        if (!guildDb) _error('Anime server list is empty.', 'EMPTY_LIST');
+            let guildDb = await getDatabase(guild.id);
+            if (!guildDb) return reject({ message: 'Server anime list is empty.', code: 'EMPTY_LIST' });
 
-        let anime = Number(animeId);
-        if (!anime) {
-            if (animeId.match(ANILIST_REGEX)) {
-                anime = animeId.match(ANILIST_REGEX)[0];
-            } else if (animeId.match(MAL_REGEX)) {
-                anime = animeId.match(MAL_REGEX)[0];
-            } else {
-                anime = await fetchAnime(AnimeQuery, {
-                    search: animeId,
-                    type: 'ANIME'
-                }).then(res => { return Number(res.data.Media?.id) }).catch(e => null);
-                if (!anime) throw new Error('Anime not found.');
+            if (isNaN(anime)) {
+                if (anime.match(ANILIST_REGEX)) {
+                    anime = anime.match(ANILIST_REGEX)[0];
+                } else if (anime.match(MAL_REGEX)) {
+                    anime = anime.match(MAL_REGEX)[0];
+                } else {
+                    anime = await fetchAnime(AnimeQuery, {
+                        search: anime,
+                        type: 'ANIME'
+                    });
+                    if (anime.errors) {
+                        if (anime.errors.find(err => err.message === 'Not Found.')) return reject({ message: 'Anime not found. Check the spelling of the anime or go to https://anilist.co to visit the animes available.', code: 'ANIME_NOT_FOUND' });
+                        return reject(anime.errors);
+                    }
+                }
+            };
+
+            if (!guildDb.data.includes(anime)) reject({ message: 'This anime is not part of the server list.', code: 'NOT_IN_DATABASE' });
+
+            guildDb.data.splice(guildDb.data.findIndex(a => a === anime), 1);
+
+            try {
+                await guildDb.save();
+                return resolve(guildDb);
+            } catch (error) {
+                return reject('Cannot save data in dabatase :\n', error);
             }
-        }
-
-        if (!guildDb.data.includes(anime)) throw new Error('Anime is not in anime list.');
-
-        guildDb.data.splice(guildDb.data.findIndex(a => a === anime), 1);
-
-        await guildDb.save().catch(e => console.log('Scheduler#removeAnime Error : ', e));
-        return guildDb;
+        })
     }
 
     /**
@@ -243,31 +276,33 @@ class Scheduler extends EventEmitter {
      * @returns {Array<Object>} - An array of anime objects.
     */
     async list(guild) {
-        if (!guild || !(guild instanceof Guild)) throw new TypeError('Guild not provided or not instance of Discord#Guild.');
+        return new Promise(async (resolve, reject) => {
+            if (!guild || !(guild instanceof Guild)) return reject('Guild not provided or not instance of Discord#Guild.');
 
-        let guildDb = await getDatabase(guild.id);
-        if (!guildDb || !guildDb.data.length) throw new Error('Anime server list is empty.');
+            let guildDb = await getDatabase(guild.id);
+            if (!guildDb || !guildDb.data.length) return reject({ message: 'Server anime list empty. Add anime with Scheduler#addAnime.', code: 'EMPTY_LIST' });
 
-        const entries = [],
-            watched = guildDb.data;
+            const entries = [],
+                watched = guildDb.data;
 
-        let page = 0,
-            hasNextPage = false;
+            let page = 0,
+                hasNextPage = false;
 
-        do {
-            const animes = await fetchAnime(AnimesQuery, { watched, page });
+            do {
+                const animes = await fetchAnime(AnimesQuery, { watched, page });
 
-            if (animes.errors) return { error: true, errors: animes.errors };
-            else if (!entries.length && !animes.data.Page.media.length) throw new Error('No anime found in this anime list.');
-            else {
-                page = animes.data.Page.pageInfo.currentPage + 1,
-                    hasNextPage = animes.data.Page.hasNextPage;
+                if (animes.errors) return { error: true, errors: animes.errors };
+                else if (!entries.length && !animes.data.Page.media.length) return reject({ message: 'No anime found in this anime list.', code: 'EMPTY_LIST' });
+                else {
+                    page = animes.data.Page.pageInfo.currentPage + 1,
+                        hasNextPage = animes.data.Page.hasNextPage;
 
-                entries.push(...animes.data.Page.media);
-            }
-        } while (hasNextPage);
+                    entries.push(...animes.data.Page.media);
+                }
+            } while (hasNextPage);
 
-        return entries;
+            return resolve(entries);
+        })
     }
 
     /**
@@ -279,13 +314,15 @@ class Scheduler extends EventEmitter {
     * @returns {Promise<Database>} A Promise that resolves with the deleted guild database.
     */
     async delete(guild) {
-        if (!guild || !(guild instanceof Guild)) throw new TypeError('Guild not provided or not instance of Discord#Guild.');
+        return new Promise(async (resolve, reject) => {
+            if (!guild || !(guild instanceof Guild)) return reject({ message: 'Guild not provided or not instance of Discord#Guild.', code: 'INVALID_GUILD' });
 
-        const guildDb = await getDatabase(guild.id);
-        if (!guildDb || !guildDb.data.length) throw new Error('Guild not found.');
+            const guildDb = await getDatabase(guild.id);
+            if (!guildDb || !guildDb.data.length) return reject({ message: 'The guild provided is not in database.', code: 'INVALID_GUILD' });
 
-        await AnimeModel.findOneAndDelete({ _id: guild.id }).catch(e => console.log('Scheduler#delete Error : ', e));
-        return guildDb;
+            await AnimeModel.findOneAndDelete({ _id: guild.id }).catch(e => console.log('Scheduler#delete Error : ', e));
+            return resolve(guildDb);
+        })
     }
 
     /**
@@ -298,16 +335,22 @@ class Scheduler extends EventEmitter {
      * @returns {Promise<Database>} A Promise that resolves with the updated guild database.
     */
     async setMode(guild, mode) {
-        if (!guild || !(guild instanceof Guild)) throw new TypeError('Guild not provided or not instance of Discord#Guild.');
+        return new Promise(async (resolve, reject) => {
+            if (!guild || !(guild instanceof Guild)) return reject({ message: 'Guild not provided or not instance of Discord#Guild.', code: 'INVALID_GUILD' });
 
-        const modes = ['all', 'list'];
-        if (!modes.includes(mode)) new TypeError('Notification mode not supported.');
+            const modes = ['all', 'list'];
+            if (!modes.includes(mode)) return reject({ message: 'This notification mode is not supported. Modes supported : ["all", "list"]', code: 'INVALID_MODE' });
 
-        const guildDb = await getDatabase(guild.id, true);
-        guildDb.mode = mode;
+            const guildDb = await getDatabase(guild.id, true);
+            guildDb.mode = mode;
 
-        await guildDb.save().catch(e => console.log('Scheduler#setMode Error : ', e));
-        return guildDb;
+            try {
+                await guildDb.save();
+                return resolve(guildDb);
+            } catch (error) {
+                return reject('Cannot save data in dabatase :\n', error);
+            }
+        })
     }
 
     /**
@@ -331,6 +374,6 @@ module.exports = Scheduler;
 
 /**
  * @author Zeleff_#1615
- * @description Notifie un serveur lors d'un nouvel épisode d'anime !
- * @version 2.0.0
+ * @description Get notification anime in discord guild !
+ * @version 2.0.3
  */
