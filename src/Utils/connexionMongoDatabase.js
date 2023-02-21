@@ -8,7 +8,7 @@ async function connexionMongoDatabase(uri, logStatus) {
 
     mongoose.connection.once("open", () => {
         if (logStatus) console.log("[Sheduler] Connected to Database !");
-    });
+    }); 
 }
 
 module.exports = connexionMongoDatabase;
