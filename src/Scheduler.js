@@ -122,18 +122,20 @@ class Scheduler extends EventEmitter {
       * @returns {Promise<{ error: boolean, message: string, code: number }>} - A promise that returns an object containing information about the success or failure of the operation.
     */
     async setChannel(guild, channel) {
-        if (!guild || !(guild instanceof Guild)) throw new TypeError('Guild not provided or not instance of Discord#Guild.');
-        if (!channel || !(channel instanceof TextChannel) && !(channel instanceof NewsChannel)) throw new TypeError('Channel not provided or not instanceof Discord#TextChannel | Discord#NewsChannel.');
+        return new Promise(async (resolve, reject) => {
+            if (!guild || !(guild instanceof Guild)) return reject({ message: 'Guild not provided or not instance of Discord#Guild.', code: 'INVALID_GUILD' });
+            if (!channel || !(channel instanceof TextChannel) && !(channel instanceof NewsChannel)) return reject({ message: 'Channel not provided or not instanceof Discord#TextChannel | Discord#NewsChannel.', code: 'INVALID_CHANNEL' });
 
-        const guildDb = await getDatabase(guild.id, true);
-        guildDb.channel = channel.id;
+            const guildDb = await getDatabase(guild.id, true);
+            guildDb.channel = channel.id;
 
-        try {
-            await guildDb.save()
-            return resolve(guildDb);
-        } catch (error) {
-            return reject('Cannot save data in database :\n', error);
-        }
+            try {
+                await guildDb.save()
+                return resolve(guildDb);
+            } catch (error) {
+                return reject('Cannot save data in database :\n', error);
+            }
+        })
     }
 
     /**
