@@ -188,7 +188,7 @@ class Scheduler extends EventEmitter {
                     anime = await fetchAnime(AnimeQuery, {
                         search: anime,
                         type: 'ANIME'
-                    });
+                    }).then(res => res.data.Media.id);
                     if (anime.errors) {
                         if (anime.errors.find(err => err.message === 'Not Found.')) return reject({ message: 'Anime not found. Check the spelling of the anime or go to https://anilist.co to visit the animes available.', code: 'ANIME_NOT_FOUND' });
                         return reject(anime.errors);
@@ -248,13 +248,15 @@ class Scheduler extends EventEmitter {
                     anime = await fetchAnime(AnimeQuery, {
                         search: anime,
                         type: 'ANIME'
-                    });
+                    }).then(res => res.data.Media.id);
                     if (anime.errors) {
                         if (anime.errors.find(err => err.message === 'Not Found.')) return reject({ message: 'Anime not found. Check the spelling of the anime or go to https://anilist.co to visit the animes available.', code: 'ANIME_NOT_FOUND' });
                         return reject(anime.errors);
                     }
                 }
             };
+            
+            anime = Number(anime);
 
             if (!guildDb.data.includes(anime)) reject({ message: 'This anime is not part of the server list.', code: 'NOT_IN_DATABASE' });
 
