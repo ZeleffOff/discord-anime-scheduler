@@ -1,6 +1,6 @@
 {
   "name": "discord-anime-scheduler",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Get notification when anime airing on anilist.co !",
   "main": "./src/Scheduler.js",
   "scripts": {
