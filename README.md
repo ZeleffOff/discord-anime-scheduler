@@ -1,61 +1,61 @@
 # Discord Anime Scheduler
 
-Notifie un serveur lorsqu'un anime est diffusé depuis [Anilist.co](https://anilist.co).
+Notification when a new anime episode airs. [Anilist.co](https://anilist.co)
 
-- Utilise la base de données MongoDB.
-- Utilise la version v14 de Discord.js.
+- This package use MongoDB.
+- This package use DiscordJS v14.
 - Npm : https://www.npmjs.com/package/discord-anime-scheduler
- 
-❗ Je ne suis pas developer pro, si vous avez des suggestions d'améliorations à apporter au projet n'hésitez pas à me contacter ou faites une pull request.
 
 ## 📁 Installation
 ```
 npm i discord-anime-scheduler@latest
 ```
 
-## 🚦 Initialisation du Scheduler
+## 🚦 Initialize the Scheduler
 ```javascript
 // index.js
 const client = new Client(...); // Discord#Client
 const Scheduler = require('discord-anime-scheduler');
 
 const sheduler = new Scheduler(client, {
-    log: false, // par défaut: false | Affiche différentes informations dans la console.
-    mongoUri: "", // Obligatoire | Lien vers votre base de données MongoDB
-    autoPost: true // par défaut: true | Poste automatiquement les notifications pour tous les serveurs de la base de données
+    log: false, // by default: false | Displays various information in the console.
+    mongoUri: "", // Required | MongoDB URI
+    autoPost: true // by default: true | Auto Send the notification in anime channel.
 });
 client.scheduler = scheduler;
 
 // ready.js
-client.scheduler.init(); // Très important ! Sans cette ligne, le scheduler ne se démarrera pas.
+client.scheduler.init(); // Init the scheduler ! If you don't initialize the scheduler, then it won't start.
 ```
 
-## 🔧 Fonctions
+## 🔧 Features
 
 ### setChannel
-Défini le salon où les notifications seront envoyées pour un serveur.
+Define the channel where notifications will be sent.
 ```javascript
-scheduler.setChannel(Guild, TextChannel)
-.then(res => console.log(res));
+scheduler.setChannel(Guild, TextChannel);
 ```
 
 ### addAnime
-Ajoute un anime à la liste d'un serveur.
-Pour ajouter un anime vous devez vous rendre sur [Anilist.co](https://anilist.co) et récupérer l'une des informations suivante :
+Add an anime to the anime list.
+Go to [Anilist.co](https://anilist.co) and get:
 
-- Url de l'anime | Exemple: https://anilist.co/anime/21/ONE-PIECE
+- Anime URL | Exemple: https://anilist.co/anime/21/ONE-PIECE
 
-- Nom de l'anime | Exemple: One Piece
+or
 
-- Identifiant de l'anime **(Se trouve dans l'url)** | Exemple: 21
+- Anime Name | Exemple: One Piece
+
+or
+
+- Anime ID **(is in url)** | Exemple: 21
  
 ```javascript
-scheduler.addAnime(Guild, Anime<id|name|url>)
-.then(res => console.log(res));
+scheduler.addAnime(Guild, Anime<id|name|url>);
 ```
 
 ### removeAnime()
-Retire un anime de la liste d'un serveur.
+Remove an anime from the anime list.
 
 ```javascript
 scheduler.removeAnime(Guild, Anime<id|name|url>)
@@ -63,31 +63,29 @@ scheduler.removeAnime(Guild, Anime<id|name|url>)
 ```
 
 ### list()
-Affiche la liste d'anime d'un serveur.
+Get server anime list.
 
 ```javascript
 scheduler.list(Guild)
-.then(res => console.log(res));
+.then(list => console.log(list));
 ```
 
 ### setMode()
-Défini le mode de notification d'un serveur.
+Set notification mode.
 
 Modes : 
-- **all** | Le serveur est notifié de tous les animes qui seront diffusés.
-- **list** (par défaut) | Le serveur est notifié seulement si un anime de sa liste est diffusé.
+- **all** | Notifies all Anilist anime broadcasts.
+- **list** (by default) | Notifies of anime broadcasts from the server's anime list only.
 
 ```javascript
-scheduler.setMode(Guild, Mode<all|list>)
-.then(res => console.log(res));
+scheduler.setMode(Guild, Mode);
 ```
 
 ### delete()
-Supprime un serveur de la base de données.
+Delete a server from the database.
 
 ```javascript
-scheduler.delete(Guild)
-.then(res => console.log(res));
+scheduler.delete(Guild);
 ```
 
 
