@@ -81,6 +81,13 @@ Modes :
 scheduler.setMode(Guild, Mode);
 ```
 
+### setRole()
+Defines the role to be mentioned when notifying an anime on a specific server.
+
+```javascript
+scheduler.setRole(Guild, Role);
+```
+
 ### delete()
 Delete a server from the database.
 
